@@ -64,7 +64,7 @@ public class SVGRenderer extends Renderer {
 	private static final File SVG_CSS_FILE = new File("svg/style.css");
 	
 	/** Whether to compress SVG output. */
-	private static final boolean COMPRESS_SVG = true;
+	private static final boolean COMPRESS_SVG = false;
 	
 	private static final DateFormat BOOT_TIME_FORMAT =
 		new SimpleDateFormat("m:ss", Common.LOCALE);
@@ -606,7 +606,7 @@ public class SVGRenderer extends Renderer {
 	 * inherit javadoc
 	 */
 	public String getFileSuffix() {
-		return COMPRESS_SVG ? "svgz" : "svg";
+		return COMPRESS_SVG ? "svg.gz" : "svg";
 	}
 	
 }
