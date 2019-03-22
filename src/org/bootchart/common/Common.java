@@ -34,6 +34,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import sun.util.logging.resources.logging;
+
 /**
  * Common methods.
  */
@@ -56,7 +58,7 @@ public class Common {
 	
 	/** Process description date format. */
 	private static final DateFormat DESC_TIME_FORMAT =
-		new SimpleDateFormat("mm:ss.SSS", LOCALE);
+		new SimpleDateFormat("ss.SSS", LOCALE);
 	
 	/**
 	 * File name filter for bootchart log files.
@@ -190,15 +192,17 @@ public class Common {
 	 */
 	public static String getProcessDesc(Process proc, Date startTime) {
 		StringBuffer sb = new StringBuffer();
-		sb.append(proc.pid + " " + proc.cmd + "\n");
+		sb.append(proc.cmd + " ");
 		Date stime =
 			new Date(proc.startTime.getTime() - startTime.getTime());
-		sb.append("Start time: " + DESC_TIME_FORMAT.format(stime) + "\n");
-		sb.append("Duration: "
+		sb.append("S:" + DESC_TIME_FORMAT.format(stime) + " ");
+		sb.append("D:"
 			      + DESC_TIME_FORMAT.format(new Date(proc.duration)));
 		if (proc.desc != null && proc.desc.length() > 0) {
 			sb.append("\n\n" + proc.desc);
 		}
+		//System.out.println(proc.cmd + "\t" + DESC_TIME_FORMAT.format(stime) + "\t" + DESC_TIME_FORMAT.format(new Date(proc.duration)) + "\t" + 
+		//DESC_TIME_FORMAT.format(new Date(proc.startTime.getTime() - startTime.getTime() + proc.duration)));
 		return sb.toString();
 	}
 	
