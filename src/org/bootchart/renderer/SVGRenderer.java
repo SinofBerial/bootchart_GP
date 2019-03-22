@@ -37,6 +37,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.bootchart.common.BootStats;
 import org.bootchart.common.CPUSample;
+import org.bootchart.common.MEMSample;
 import org.bootchart.common.Common;
 import org.bootchart.common.DiskTPutSample;
 import org.bootchart.common.DiskUtilSample;
@@ -92,10 +93,11 @@ public class SVGRenderer extends Renderer {
 		
 		Stats diskStats = bootStats.diskStats;
 		Stats cpuStats = bootStats.cpuStats;
+		Stats memStats = bootStats.memStats;
 		ProcessTree procTree = bootStats.procTree;
 		
 		long dur = procTree.duration;
-		int secW = 25;
+		int secW = 50;
 		int w = (int)(dur / 1000 * secW);
 		int procH = 16;
 		int headerH = 300;
@@ -122,6 +124,10 @@ public class SVGRenderer extends Renderer {
 		 * 15: Process axis labels
 		 * 16: Process time ticks
 		 * 17: Process chart (formatted using the process template)
+		 * 18: Memory time ticks
+		 * 19: Free Memory chart
+		 * 20: Free Memory chart
+		 * 21: Available Memory chart
 		 */
 		String chartTemplate = Common.loadFile(CHART_SVG_TEMPLATE);
 		
@@ -336,6 +342,86 @@ public class SVGRenderer extends Renderer {
 				}
 			}
 		}
+
+		/*
+		 * Render Memory stats chart
+		 */
+		StringBuffer freeMemPoints = new StringBuffer();
+		StringBuffer usedMemPoints = new StringBuffer();
+		StringBuffer availMemPoints = new StringBuffer();
+		if (memStats != null) {
+			int lastX = 0;
+			for (Iterator i = memStats.getSamples().iterator(); i.hasNext();) {
+				Sample s = (Sample)i.next();
+				if (!(s instanceof MEMSample)) {
+					continue;
+				}
+				MEMSample sample = (MEMSample)s;
+				Date endTime =
+					new Date(procTree.startTime.getTime() + dur);
+				if (sample.time.compareTo(procTree.startTime) < 0
+					|| sample.time.compareTo(endTime) > 0) {
+					continue;
+				}
+				int posX =
+					(int)((sample.time.getTime() - procTree.startTime.getTime()) * w / dur);
+				int posY = barH - (int)(sample.free * barH);
+				lastX = posX;
+				if (freeMemPoints.length() == 0) {
+					freeMemPoints.append(posX + "," + barH);
+				}
+				freeMemPoints.append(" " + posX + "," + posY);
+			}
+			freeMemPoints.append(" " + lastX + "," + barH);
+
+			lastX = 0;
+			for (Iterator i = memStats.getSamples().iterator(); i.hasNext();) {
+				Sample s = (Sample)i.next();
+				if (!(s instanceof MEMSample)) {
+					continue;
+				}
+				MEMSample sample = (MEMSample)s;
+				Date endTime =
+					new Date(procTree.startTime.getTime() + dur);
+				if (sample.time.compareTo(procTree.startTime) < 0
+					|| sample.time.compareTo(endTime) > 0) {
+					continue;
+				}
+				int posX =
+					(int)((sample.time.getTime() - procTree.startTime.getTime()) * w / dur);
+				int posY = barH - (int)(sample.available * barH);
+				lastX = posX;
+				if (availMemPoints.length() == 0) {
+					availMemPoints.append(posX + "," + barH);
+				}
+				availMemPoints.append(" " + posX + "," + posY);
+			}
+			availMemPoints.append(" " + lastX + "," + barH);
+			
+			lastX = 0;
+			for (Iterator i = memStats.getSamples().iterator(); i.hasNext();) {
+				Sample s = (Sample)i.next();
+				if (!(s instanceof MEMSample)) {
+					continue;
+				}
+				MEMSample sample = (MEMSample)s;
+				Date endTime =
+					new Date(procTree.startTime.getTime() + dur);
+				if (sample.time.compareTo(procTree.startTime) < 0
+					|| sample.time.compareTo(endTime) > 0) {
+					continue;
+				}
+				int posX =
+					(int)((sample.time.getTime() - procTree.startTime.getTime()) * w / dur);
+				int posY = barH - (int)(sample.used * barH);
+				lastX = posX;
+				if (usedMemPoints.length() == 0) {
+					usedMemPoints.append(posX + "," + barH);
+				}
+				usedMemPoints.append(" " + posX + "," + posY);
+			}
+			usedMemPoints.append(" " + lastX + "," + barH);
+		}
 		
 		/*
 		 * Render the process tree
@@ -398,7 +484,8 @@ public class SVGRenderer extends Renderer {
 			cpuTicks, ioPoints.toString(), cpuPoints.toString(),
 			cpuTicks, diskUtilPoints.toString(), diskReadPoints.toString().trim(),
 			fileOpenPoints.toString().trim(),
-			axisLabels, procTicks, procTreeSVG.toString()
+			axisLabels, procTicks, procTreeSVG.toString(),
+			cpuTicks, freeMemPoints.toString(), usedMemPoints.toString(), availMemPoints.toString()
 		};
 		// format the template
 		String svgContent =
@@ -569,10 +656,12 @@ public class SVGRenderer extends Renderer {
 			labelPos = "dx=\"2\" dy=\""+ (procH - 1) + "\" x=\"0\" y=\"0\"";
 		}
 		String labelText = proc.cmd;
+		labelText = labelText.replace("<", "&lt;").replace(">", "&gt;");
 		String titleText = Common.getProcessDesc(proc, procTree.startTime);
+		titleText = titleText.replace("<", "&lt;").replace(">", "&gt;");
 
 		Object[] procArgs =
-			{position, timeline, border, connector, labelPos, labelText, titleText};
+			{position, timeline, border, connector, labelPos, titleText, titleText};
 		String procContent =
 			MessageFormat.format(processTemplate, procArgs);
 		return procContent;
@@ -606,7 +695,7 @@ public class SVGRenderer extends Renderer {
 	 * inherit javadoc
 	 */
 	public String getFileSuffix() {
-		return COMPRESS_SVG ? "svg.gz" : "svg";
+		return COMPRESS_SVG ? "svgz" : "svg";
 	}
 	
 }
